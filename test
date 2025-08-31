@@ -1,0 +1,7 @@
+Important Notes
+
+Make sure this babel config is at your project root (/babel.config.js).
+
+After changing babel config, clear cache:
+
+npx react-native start --reset-cache
