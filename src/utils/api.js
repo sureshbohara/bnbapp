@@ -1,42 +1,41 @@
+// utils/api.js
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
-const API_BASE_URL = process.env.API_URL || 'https://api.shakyastorenp.com/api/v1';
+const API_BASE_URL = process.env.API_URL || 'https://nepalibnb.glaciersafari.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+  timeout: 15000, // optional timeout
 });
 
-// Attach token if available
+// Attach token automatically
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
-}, error => Promise.reject(error));
+});
 
-// Centralized error handler
-export const handleError = async (error, navigation) => {
-  let errorMessage = 'An error occurred, please try again later.';
-
-  if (error.response) {
-    if (error.response.status === 401) {
-      errorMessage = 'Session expired. Please log in again.';
+// Global response error handler
+api.interceptors.response.use(
+  response => response,
+  async (error) => {
+    if (error.response?.status === 401) {
       await AsyncStorage.removeItem('access_token');
-      if (navigation) {
-        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-      }
+      Alert.alert('Session Expired', 'Please log in again.');
+      // Optional: trigger a global navigation reset
+      // You can use a navigation ref if needed
+    } else if (error.response) {
+      Alert.alert('Error', error.response.data?.message || 'Something went wrong.');
+    } else if (error.request) {
+      Alert.alert('Error', 'Server not responding. Please try again later.');
     } else {
-      errorMessage = error.response.data?.message || errorMessage;
+      Alert.alert('Error', error.message);
     }
-  } else if (error.request) {
-    errorMessage = 'Server not responding. Please try again later.';
-  } else {
-    errorMessage = error.message;
+    return Promise.reject(error);
   }
-
-  console.error('API Error:', errorMessage);
-  throw new Error(errorMessage);
-};
+);
 
 export default api;

@@ -1,19 +1,16 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import colors from '../../constants/colors';
-import { FavoritesContext } from '../../contexts/FavoritesContext';
 
 const { width } = Dimensions.get('window');
-const CARD_IMAGE_WIDTH = width * 0.33; 
+const CARD_IMAGE_WIDTH = width * 0.33;
 const CARD_HEIGHT = 130;
-const scaleFont = (size) => Math.round(size * (width / 375)); 
+const scaleFont = size => Math.round(size * (width / 375));
 
-const RoomListCard = ({ room }) => {
-  const { favorites, handleFavoriteToggle } = useContext(FavoritesContext);
-  const isFavorite = favorites.some(f => f.id === room.id);
-
+const FavCard = ({ room, onRemove }) => {
   const scale = new Animated.Value(1);
+
   const onPressIn = () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
   const onPressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
 
@@ -24,15 +21,10 @@ const RoomListCard = ({ room }) => {
           <View style={styles.imageContainer}>
             <Image source={{ uri: room.image_url }} style={styles.image} />
             <View style={styles.overlay} />
-            <TouchableOpacity style={styles.favoriteBtn} onPress={() => handleFavoriteToggle(room)}>
-              <Ionicons
-                name={isFavorite ? 'heart' : 'heart-outline'}
-                size={22}
-                color={isFavorite ? colors.danger : colors.white}
-              />
+            <TouchableOpacity style={styles.favoriteBtn} onPress={() => onRemove(room)}>
+              <Ionicons name="heart" size={22} color={colors.danger} />
             </TouchableOpacity>
           </View>
-
           <View style={styles.content}>
             <Text style={styles.title} numberOfLines={1}>{room.title}</Text>
             <Text style={styles.location} numberOfLines={1}>{room.city}, {room.address}</Text>
@@ -69,4 +61,4 @@ const styles = StyleSheet.create({
   price: { fontSize: scaleFont(14), fontWeight: '700', color: colors.primary },
 });
 
-export default RoomListCard;
+export default FavCard;

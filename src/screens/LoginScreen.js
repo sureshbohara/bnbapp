@@ -1,103 +1,213 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useRef, useContext } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ScrollView,
+} from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import colors from '../constants/colors';
-import strings from '../constants/strings';
+import { useNavigation } from '@react-navigation/native';
+import api from '../utils/api';
+import { showMessage } from 'react-native-flash-message';
+import { AuthContext } from '../contexts/AuthContext';
 
-const logo = require('../assets/images/logo.png'); 
-
+import { SettingsConstants } from '../constants/SettingsConstants';
 const LoginScreen = () => {
+  const { settings } = useContext(SettingsConstants);
+  const navigation = useNavigation();
+  const { login } = useContext(AuthContext);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
-      return;
+  const passwordRef = useRef(null);
+
+  // Validate input
+  const validateInputs = () => {
+    if (!email) {
+      showMessage({ message: 'Email is required', type: 'danger' });
+      return false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      showMessage({ message: 'Please enter a valid email', type: 'danger' });
+      return false;
     }
-    Alert.alert('Success', `Logging in with\nEmail: ${email}`);
+    if (!password) {
+      showMessage({ message: 'Password is required', type: 'danger' });
+      return false;
+    }
+    return true;
+  };
+
+  const handleLogin = async () => {
+    if (!validateInputs()) return;
+    Keyboard.dismiss();
+    setLoading(true);
+
+    try {
+      const response = await api.post('/login', { email, password });
+      if (response.data.status === 200) {
+        const { token, user } = response.data;
+        await login(token, user);
+
+        showMessage({
+          message: `Welcome ${user.name || user.email}`,
+          type: 'success',
+          duration: 3000,
+        });
+
+        navigation.replace('Home');
+      } else {
+        showMessage({
+          message: response.data.message || 'Invalid credentials',
+          type: 'danger',
+        });
+      }
+    } catch (error) {
+      showMessage({
+        message: error.response?.data?.message || 'Login failed, try again',
+        type: 'danger',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={logo} style={styles.logo} resizeMode="contain" />
-      <Text style={styles.title}>{strings.home.welcome}</Text>
-      <Text style={styles.subtitle}>{strings.auth.login}</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#f5f5f5' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView contentContainerStyle={styles.container}>
+          {settings?.logo && <Image source={{ uri: settings.logo }} style={styles.logo} resizeMode="contain" />}
+          <Text style={styles.title}>Welcome Back</Text>
+           <Text style={styles.subtitle}>Enter your email to login</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder={strings.auth.emailPlaceholder}
-        placeholderTextColor={colors.textLight}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder={strings.auth.passwordPlaceholder}
-        placeholderTextColor={colors.textLight}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+          {/* Email Input */}
+          <View style={styles.inputWrapper}>
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor={colors.textLight}
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current.focus()}
+            />
+          </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>{strings.auth.login}</Text>
-      </TouchableOpacity>
-    </View>
+          {/* Password Input */}
+          <View style={styles.inputWrapper}>
+            <TextInput
+              ref={passwordRef}
+              placeholder="Password"
+              placeholderTextColor={colors.textLight}
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setShowPassword(prev => !prev)}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off' : 'eye'}
+                size={22}
+                color={colors.textLight}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Forgot Password */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ResetPassword')}
+            style={styles.forgotBtn}
+          >
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </TouchableOpacity>
+
+          {/* Login Button */}
+          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Text style={styles.loginText}>Login</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Register */}
+          <View style={styles.registerWrapper}>
+            <Text>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.registerText}>Register</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: colors.background,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+    padding: 20,
   },
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.title,
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: colors.textLight,
-    marginBottom: 20,
+  logo: { width: 120, height: 120, marginBottom: 10, borderRadius: 60 },
+  title: { fontSize: 28, fontWeight: 'bold', color: colors.primary, marginBottom: 10 },
+  subtitle: { fontSize: 16, color: colors.textLight, marginBottom: 10 },
+  inputWrapper: {
+    width: '100%',
+    marginBottom: 15,
+    position: 'relative',
   },
   input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: '#fff',
+    color: colors.textDark,
+    padding: 12,
+    paddingRight: 40,
     borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
     fontSize: 16,
-    color: colors.text,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+    elevation: 1,
   },
-  button: {
+  eyeIcon: { position: 'absolute', right: 10, top: 12 },
+  forgotBtn: { alignSelf: 'flex-end', marginBottom: 20 },
+  forgotText: { color: colors.secondary },
+  loginBtn: {
     width: '100%',
-    height: 50,
     backgroundColor: colors.primary,
+    padding: 15,
     borderRadius: 8,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    marginBottom: 20,
   },
-  buttonText: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  loginText: { color: colors.white, fontSize: 16, fontWeight: 'bold' },
+  registerWrapper: { flexDirection: 'row', alignItems: 'center' },
+  registerText: { color: colors.primary, fontWeight: 'bold' },
 });
 
 export default LoginScreen;

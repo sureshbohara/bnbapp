@@ -7,7 +7,8 @@ import colors from '../../constants/colors';
 const { width: screenWidth } = Dimensions.get('window');
 
 const Banner = ({ banners = [] }) => {
-  const slideWidth = screenWidth - 32;
+  const slideWidth = screenWidth - 32; 
+  const slideHeight = slideWidth * 0.45; 
 
   if (!banners || banners.length === 0) return null;
 
@@ -16,8 +17,8 @@ const Banner = ({ banners = [] }) => {
       <Carousel
         loop
         width={slideWidth}
-        height={slideWidth * 0.45}
-        autoPlay={true}
+        height={slideHeight}
+        autoPlay
         autoPlayInterval={4000}
         data={banners}
         mode="horizontal-stack"
@@ -26,7 +27,7 @@ const Banner = ({ banners = [] }) => {
         renderItem={({ item }) => (
           <View style={styles.slide}>
             <Image
-              source={item.image} 
+              source={{ uri: item.image_url }} 
               style={styles.image}
               resizeMode="cover"
             />

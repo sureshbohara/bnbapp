@@ -1,118 +1,102 @@
-// src/screens/ProfileScreen.js
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import React, { useEffect, useState } from 'react';
+import { 
+  View, Text, StyleSheet, Image, ScrollView, 
+  ActivityIndicator, TouchableOpacity, Alert 
+} from 'react-native';
 import colors from '../constants/colors';
-import RoomListCard from '../components/common/RoomListCard';
-
-const bookingsData = [
-  {
-    id: 1,
-    name: 'Luxury Room',
-    city: 'Kathmandu',
-    address: 'Thamel',
-    price: 120,
-    rating: 4.7,
-    image: 'https://picsum.photos/200/140?random=1',
-  },
-  {
-    id: 2,
-    name: 'Cozy Apartment',
-    city: 'Pokhara',
-    address: 'Lakeside',
-    price: 90,
-    rating: 4.5,
-    image: 'https://picsum.photos/200/140?random=2',
-  },
-  {
-    id: 3,
-    name: 'Modern Suite',
-    city: 'Bhaktapur',
-    address: 'Durbar Square',
-    price: 150,
-    rating: 4.8,
-    image: 'https://picsum.photos/200/140?random=3',
-  },
-];
+import AppHeader from '../components/common/AppHeader';
+import { getProfile, logoutUser } from '../services/apiService';
 
 const ProfileScreen = ({ navigation }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    const data = await getProfile();
+    if (data) setUser(data);
+    setLoading(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser(); // Use centralized logout function
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'LoginScreen' }],
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      Alert.alert('Error', 'Unable to logout. Please try again.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: colors.text }}>Failed to load profile.</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={28} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
-        <TouchableOpacity style={styles.editBtn}>
-          <Ionicons name="create-outline" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+      <AppHeader
+        title="Profile"
+        onBack={() => navigation.goBack()}
+      />
 
-      {/* Avatar & Basic Info */}
       <View style={styles.profileContainer}>
-        <Image source={{ uri: 'https://picsum.photos/120/120?random=10' }} style={styles.avatar} />
-        <Text style={styles.name}>John Doe</Text>
-        <Text style={styles.phone}>+977 9876543210</Text>
-      </View>
-
-      {/* Address Info */}
-      <View style={styles.infoCard}>
-        <Text style={styles.sectionTitle}>Address</Text>
-        <Text style={styles.infoValue}>123 Main Street</Text>
-        <Text style={styles.infoValue}>Kathmandu</Text>
-        <Text style={styles.infoValue}>Bagmati Province</Text>
-        <Text style={styles.infoValue}>Nepal</Text>
-      </View>
-
-      {/* Additional Info */}
-      <View style={styles.infoCard}>
-        <Text style={styles.sectionTitle}>About Me</Text>
-        <Text style={styles.infoValue}>
-          Hello! I am John, a traveler and booking enthusiast. I love discovering new places and staying at
-          unique accommodations. This is my personal profile description.
+        <Image 
+          source={{ uri: user.avatar || 'https://picsum.photos/120/120' }} 
+          style={styles.avatar} 
+        />
+        <Text style={styles.name}>{user.name}</Text>
+        <Text style={styles.phone}>{user.phone}</Text>
+        <Text style={styles.joiningDate}>
+          Joined: {new Date(user.created_at).toLocaleDateString()}
         </Text>
       </View>
 
-      {/* Booking Section */}
-      <View style={{ marginTop: 20 }}>
-        <Text style={[styles.sectionTitle, { marginLeft: 16 }]}>My Bookings</Text>
-        {bookingsData.map((room) => (
-          <RoomListCard key={room.id} room={room} />
-        ))}
+      <View style={styles.infoCard}>
+        <Text style={styles.sectionTitle}>Address</Text>
+        <Text style={styles.infoValue}>{user.address}</Text>
+        <Text style={styles.infoValue}>{user.city}</Text>
+        <Text style={styles.infoValue}>{user.province}</Text>
+        <Text style={styles.infoValue}>{user.country}</Text>
       </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.sectionTitle}>About Me</Text>
+        <Text style={styles.infoValue}>{user.about || 'No description provided.'}</Text>
+      </View>
+
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-
-  // Header
-  header: {
-    height: 70,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    justifyContent: 'space-between',
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  backBtn: { padding: 5 },
-  editBtn: { padding: 5 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: colors.text },
-
-  // Profile Info
-  profileContainer: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  profileContainer: { alignItems: 'center', marginTop: 20 },
   avatar: { width: 120, height: 120, borderRadius: 60 },
   name: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginTop: 10 },
   phone: { fontSize: 16, color: colors.textLight, marginTop: 5 },
-
-  // Info Cards
+  joiningDate: { fontSize: 14, color: colors.textLight, marginTop: 3 },
   infoCard: {
     backgroundColor: colors.white,
     marginHorizontal: 15,
@@ -127,6 +111,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8, color: colors.text },
   infoValue: { fontSize: 14, color: colors.textLight, marginBottom: 4 },
+  logoutBtn: {
+    backgroundColor: colors.primary,
+    margin: 20,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  logoutText: { color: colors.white, fontSize: 16, fontWeight: 'bold' },
 });
 
 export default ProfileScreen;

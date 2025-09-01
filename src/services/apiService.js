@@ -1,93 +1,82 @@
 // src/services/apiService.js
-import api, { handleError } from '../utils/api';
+import { callApi } from '../utils/apiHelper';
+import api from '../utils/api';
 
 
-const callApi = async (requestFn, navigation = null) => {
+
+// Fetch app settings
+export const fetchSettings = async () => {
+    return callApi(() => api.get('/settings'));
+};
+
+// Fetch banners
+export const fetchBanners = async () => {
+   return callApi(() => api.get('/banners'));
+};
+
+// Fetch categories
+export const fetchCategories = async () => {
+   return callApi(() => api.get('/home-categories'));
+};
+
+
+
+export const fetchAllRooms = async () => {
+   return callApi(() => api.get('/all-listing'));
+};
+
+
+
+export const fetchRoomsByCategory = (categoryId) =>
+  callApi(() => api.get(`/listings/category/${categoryId}`));
+
+
+
+export const fetchValleyRooms = async () => {
+   return callApi(() => api.get('/valley-listing'));
+};
+
+
+
+export const fetchOutsideValleyRooms = async () => {
+   return callApi(() => api.get('/outside-valley-listing'));
+};
+
+
+
+export const searchRooms = async (query) => {
   try {
-    const response = await requestFn();
-    // Adjust based on your API structure
-    return response.data?.datas ?? response.data ?? response;
+    const response = await api.get('/rooms/search', {
+      params: { q: query, per_page: 100 },
+    });
+    return response.data.datas; 
   } catch (error) {
-    await handleError(error, navigation);
-    return null;
+    console.error('Search API error:', error);
+    return [];
   }
 };
 
 
-export const fetchBanners = () => callApi(async () => [
-  { id: '1', image: require('../assets/images/banner1.jpg') },
-  { id: '2', image: require('../assets/images/banner2.jpg') },
-]);
+export const logoutUser = async () => {
+  try {
+    await api.post('/logout'); 
+  } catch (error) {
+    console.log('Logout API error:', error.response ? error.response.data : error.message);
+  } finally {
+    await AsyncStorage.removeItem('access_token');
+  }
+};
 
+export const getProfile = async () => {
+  try {
+    const response = await api.get('/profile');
+    return response.data.user; 
+  } catch (error) {
+    console.error('Get profile API error:', error);
+    return null;
+  }
+};
 
-export const fetchCategories = () => callApi(async () => [
-  { id: '1', name: 'House', image: 'https://nepalibnb.glaciersafari.com/storage/images/ASPYfAxVwhplnySb9Sexqd14HwHQlXxQRxj9qLYA.png', slug: 'house' },
-  { id: '2', name: 'Apartment', image: 'https://nepalibnb.glaciersafari.com/storage/images/FDbJLV4rBDqGMw0d9B4anIKb7eL6PJMYkxl9ONEO.png', slug: 'apartment' },
-  { id: '3', name: 'Cabin', image: 'https://nepalibnb.glaciersafari.com/storage/images/3XzmR9Oy9FLSC8QOCMhFOKIcl01WCkVLD4OfTLwR.png', slug: 'cabin' },
-  { id: '4', name: 'Villa', image: 'https://nepalibnb.glaciersafari.com/storage/images/n3ieeHrigsJFAejY55lBz45AxKKFd7T1H5meEZEt.png', slug: 'villa' },
-  { id: '5', name: 'Guesthouse', image: 'https://nepalibnb.glaciersafari.com/storage/images/I7WAZW8CKEPkPNo7hqvkWdI47xumufxKgot6Zc12.png', slug: 'guesthouse' },
-  { id: '6', name: 'Cottage', image: 'https://nepalibnb.glaciersafari.com/storage/images/M5jU42ypdenxSGTpe4JmgXWLeAIcxN4elyNSr6uu.png', slug: 'cottage' },
-  { id: '7', name: 'Bungalow', image: 'https://img.freepik.com/premium-vector/bungalow-icon-vector-image-can-be-used-type-houses_120816-285173.jpg', slug: 'bungalow' },
-  { id: '8', name: 'Farmhouse', image: 'https://static.vecteezy.com/system/resources/previews/036/258/299/non_2x/pastoral-residence-mark-farmers-house-icon-countryside-dwelling-impression-farmhouse-emblem-vector.jpg', slug: 'farmhouse' },
-]);
-
-
-export const fetchRooms = () => callApi(async () => [
-  { 
-    id: '1', 
-    name: 'House Room', 
-    price: 120, 
-    image: 'https://themewagon.github.io/royal/image/room1.jpg', 
-    category_id: '1',
-    city: 'Kathmandu',
-    address: '123 Main St, Kathmandu'
-  },
-  { 
-    id: '2', 
-    name: 'Apartment Room', 
-    price: 100, 
-    image: 'https://themewagon.github.io/royal/image/room2.jpg', 
-    category_id: '2',
-    city: 'Pokhara',
-    address: '45 Lakeside Rd, Pokhara'
-  },
-  { 
-    id: '3', 
-    name: 'Cabin Room', 
-    price: 80, 
-    image: 'https://themewagon.github.io/royal/image/room3.jpg', 
-    category_id: '3',
-    city: 'Chitwan',
-    address: '78 Jungle Path, Chitwan'
-  },
-  { 
-    id: '4', 
-    name: 'Villa Room', 
-    price: 150, 
-    image: 'https://themewagon.github.io/royal/image/room4.jpg', 
-    category_id: '4',
-    city: 'Pokhara',
-    address: '12 Ocean View Rd, Pokhara'
-  },
-  { 
-    id: '5', 
-    name: 'Guesthouse Room', 
-    price: 90, 
-    image: 'https://dreamstour.dreamstechnologies.com/html/assets/img/hotels/hotel-07.jpg', 
-    category_id: '5',
-    city: 'Bhaktapur',
-    address: '56 Heritage St, Bhaktapur'
-  },
-  { 
-    id: '6', 
-    name: 'Cottage Room', 
-    price: 200, 
-    image: 'https://dreamstour.dreamstechnologies.com/html/assets/img/hotels/hotel-06.jpg', 
-    category_id: '6',
-    city: 'Lalitpur',
-    address: '99 Hilltop Rd, Lalitpur'
-  },
-]);
 
 
 export const fetchUsers = () => callApi(async () => [
@@ -112,9 +101,16 @@ export const fetchChats = (userId) => callApi(async () => {
 });
 
 
-export const fetchFavorites = () => callApi(async () => [
-  { id: '1', name: 'House Room', price: 120, image: 'https://picsum.photos/160/100?random=21', city: 'Kathmandu', address: '123 Main St, Kathmandu', rating: 4.5 },
-  { id: '2', name: 'Apartment Room', price: 100, image: 'https://picsum.photos/160/100?random=22', city: 'Pokhara', address: '45 Lakeside Rd, Pokhara', rating: 4.2 },
-  { id: '3', name: 'Cabin Room', price: 80, image: 'https://picsum.photos/160/100?random=23', city: 'Chitwan', address: '78 Jungle Path, Chitwan', rating: 4.7 },
-  { id: '4', name: 'Villa Room', price: 150, image: 'https://picsum.photos/160/100?random=24', city: 'Pokhara', address: '12 Ocean View Rd, Pokhara', rating: 4.8 },
-]);
+
+// Favorites
+export const fetchFavorites = async () => callApi(() => api.get('/favorites'));
+
+export const toggleFavorite = async (listingId) => {
+  try {
+    const response = await api.post('/favorites', { listing_id: listingId });
+    return response.data;
+  } catch (error) {
+    console.error('Toggle favorite API error:', error);
+    return null;
+  }
+};

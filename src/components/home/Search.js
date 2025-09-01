@@ -1,77 +1,133 @@
-import React from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import colors from '../../constants/colors';
-
-const { width } = Dimensions.get('window'); 
+import { AuthContext } from '../../contexts/AuthContext';
 
 const SearchBar = () => {
-  return (
-    <View style={styles.container}>
-      {/* Search Input Box */}
-      <View style={styles.searchBox}>
-        <TextInput
-          style={styles.input}
-          placeholder="Search rooms..."
-          placeholderTextColor={colors.textLight}
-        />
-        <TouchableOpacity style={styles.searchBtn}>
-          <Ionicons name="search" size={width * 0.045} color={colors.white} />
-        </TouchableOpacity>
-      </View>
+  const [query, setQuery] = useState('');
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const navigation = useNavigation();
+  const { user } = useContext(AuthContext); // Get current logged-in user
 
-      {/* Avatar Icon */}
-      <View style={styles.profile}>
-        <Image
-          source={require('../../assets/images/avatar.png')}
-          style={styles.avatar}
-        />
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: query.length > 0 ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [query]);
+
+  const handleSearchSubmit = () => {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length > 0) {
+      navigation.navigate('List', {
+        title: `Search: ${trimmedQuery}`,
+        query: trimmedQuery,
+      });
+    }
+  };
+
+  return (
+    <View style={styles.headerBackground}>
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerText}>
+            {user?.name ? `Hi, ${user.name}` : 'EXPLORE'}
+          </Text>
+          <TouchableOpacity>
+            <Ionicons name="menu" size={28} color={colors.white} />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+
+      {/* Floating Search Bar */}
+      <View style={styles.searchWrapper}>
+        <View style={styles.searchBox}>
+          <Ionicons
+            name="search"
+            size={22}
+            color={colors.secondary}
+            style={{ marginRight: 10 }}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Search rooms, houses..."
+            placeholderTextColor={colors.textLight}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+            onSubmitEditing={handleSearchSubmit}
+          />
+          {query.length > 0 && (
+            <Animated.View style={{ opacity: fadeAnim }}>
+              <TouchableOpacity onPress={() => setQuery('')}>
+                <Ionicons name="close-circle" size={20} color={colors.textLight} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  headerBackground: {
+    backgroundColor: colors.secondary,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    elevation: 6,
+    paddingBottom: 30,
+  },
+  safeArea: {
+    paddingBottom: 12,
+  },
+  headerContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginHorizontal: '4%',
-    marginVertical: '2%',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  headerText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.white,
+    letterSpacing: 1,
+  },
+  searchWrapper: {
+    marginTop: 0,
+    paddingHorizontal: 20,
   },
   searchBox: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 25,
-    paddingHorizontal: '4%',
-    height: width * 0.12,
-    borderWidth: 1.3,
-    borderColor: colors.secondary,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 30,
+    paddingHorizontal: 16,
+    height: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 5,
   },
   input: {
     flex: 1,
-    fontSize: width * 0.04, 
+    fontSize: 16,
     color: colors.text,
     paddingVertical: 0,
-    marginRight: '2%',
-  },
-  searchBtn: {
-    backgroundColor: colors.primary,
-    padding: width * 0.025,
-    borderRadius: 20,
-  },
-  profile: {
-    marginLeft: '3%',
-    borderRadius: 25,
-    overflow: 'hidden',
-    borderWidth: 1.3,
-    borderColor: colors.secondary,
-  },
-  avatar: {
-    width: width * 0.1,
-    height: width * 0.1,
-    borderRadius: width * 0.05,
   },
 });
 

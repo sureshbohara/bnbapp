@@ -1,38 +1,16 @@
-// src/screens/FavoritesScreen.js
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import React, { useContext } from 'react';
+import { View, FlatList, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import colors from '../constants/colors';
-import RoomListCard from '../components/common/RoomListCard';
-import { fetchRooms } from '../services/apiService';
+import FavCard from '../components/common/FavCard';
+import AppHeader from '../components/common/AppHeader';
+import { FavoritesContext } from '../contexts/FavoritesContext';
 
 const FavoritesScreen = () => {
-  const [rooms, setRooms] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { favorites, loadingFavorites, handleFavoriteToggle } = useContext(FavoritesContext);
   const navigation = useNavigation();
 
-  // Dummy favorite room IDs
-  const favoriteRoomIds = ['1', '3', '5'];
-
-  useEffect(() => {
-    loadRooms();
-  }, []);
-
-  const loadRooms = async () => {
-    try {
-      const data = await fetchRooms();
-      // Filter only favorite rooms
-      const favoriteRooms = data.filter((room) => favoriteRoomIds.includes(room.id));
-      setRooms(favoriteRooms);
-    } catch (error) {
-      console.error('Failed to fetch rooms:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (loadingFavorites) {
     return (
       <View style={styles.loader}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -42,58 +20,25 @@ const FavoritesScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>You Are Favorites</Text>
-      </View>
-
-      {/* Favorites List */}
+      <AppHeader title="Your Favorites" onBack={() => navigation.goBack()} />
       <FlatList
-        data={rooms}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <RoomListCard room={item} isFavorite={true} />}
-        showsVerticalScrollIndicator={false}
+        data={favorites}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => <FavCard room={item} onRemove={handleFavoriteToggle} />}
         contentContainerStyle={{ paddingBottom: 16, paddingTop: 16 }}
+        ListEmptyComponent={
+          <View style={{ marginTop: 50, alignItems: 'center' }}>
+            <Text style={{ color: colors.textLight }}>No favorite rooms yet.</Text>
+          </View>
+        }
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.cardBackground,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-  },
-  backButton: {
-    marginRight: 12,
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.title,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
 });
 
 export default FavoritesScreen;

@@ -1,42 +1,41 @@
 export default {
   appName: 'Nepali BNB',
-
-  // Auth
   auth: {
-    login: 'Login',
-    register: 'Register',
-    logout: 'Logout',
-    email: 'Email',
-    password: 'Password',
-    confirmPassword: 'Confirm Password',
+    loginTitle: 'Please enter your email & password',  
+    loginButton: 'Login',                              
+    registerButton: 'Register',
+    logoutButton: 'Logout',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    confirmPasswordLabel: 'Confirm Password',
     emailPlaceholder: 'Enter your email',
     passwordPlaceholder: 'Enter your password',
   },
 
-  // Home
+  // Home Screen
   home: {
-    welcome: 'Welcome back!',
-    popularRooms: 'Popular Rooms',
-    recommended: 'Recommended for you',
+    welcomeText: 'Welcome back!',
+    popularRoomsTitle: 'Popular Rooms',
+    recommendedTitle: 'Recommended for you',
   },
 
-  // Messages
+  // Messages Screen
   messages: {
-    title: 'Messages',
-    noMessages: 'No messages yet.',
+    screenTitle: 'Messages',
+    noMessagesText: 'No messages yet.',
   },
 
-  // Favorites
+  // Favorites Screen
   favorites: {
-    title: 'Your Favorites',
-    noFavorites: 'You don’t have any favorites yet.',
+    screenTitle: 'Your Favorites',
+    noFavoritesText: 'You don’t have any favorites yet.',
   },
 
   // Errors
   errors: {
-    generic: 'An error occurred, please try again later.',
-    network: 'Network error, please try again later.',
-    unauthorized: 'Session expired. Please log in again.',
+    genericError: 'An error occurred, please try again later.',
+    networkError: 'Network error, please try again later.',
+    unauthorizedError: 'Session expired. Please log in again.',
   },
 
   // Buttons
