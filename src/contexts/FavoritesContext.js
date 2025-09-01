@@ -1,15 +1,23 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import { fetchFavorites, toggleFavorite } from '../services/apiService';
+import { AuthContext } from './AuthContext';
 
 export const FavoritesContext = createContext();
 
 export const FavoritesProvider = ({ children }) => {
+  const { user, loading: authLoading } = useContext(AuthContext); // check auth state
   const [favorites, setFavorites] = useState([]);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
 
   useEffect(() => {
-    loadFavorites();
-  }, []);
+    if (!authLoading && user) {
+      loadFavorites();
+    } else if (!authLoading && !user) {
+      // user not logged in → clear favorites
+      setFavorites([]);
+      setLoadingFavorites(false);
+    }
+  }, [authLoading, user]);
 
   const loadFavorites = async () => {
     setLoadingFavorites(true);
@@ -49,7 +57,7 @@ export const FavoritesProvider = ({ children }) => {
     try {
       await toggleFavorite(room.id);
     } catch (error) {
-      loadFavorites(); 
+      loadFavorites(); // rollback if API fails
     }
   };
 

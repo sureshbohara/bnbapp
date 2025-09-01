@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -17,12 +17,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import colors from '../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import AppHeader from '../components/common/AppHeader';
-import { showMessage } from 'react-native-flash-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../utils/api';
-
+import { registerUser } from '../services/apiService';
+import { AuthContext } from '../contexts/AuthContext';
+import { showMessage } from 'react-native-flash-message';
 const RegisterScreen = () => {
   const navigation = useNavigation();
+  const { setUser } = useContext(AuthContext);
 
   const [form, setForm] = useState({
     name: '',
@@ -42,9 +43,7 @@ const RegisterScreen = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const validateInputs = () => {
     let errs = {};
@@ -65,65 +64,46 @@ const RegisterScreen = () => {
     return Object.keys(errs).length === 0;
   };
 
-  const handleRegister = async () => {
-    if (!validateInputs()) {
+const handleRegister = async () => {
+  if (!validateInputs()) {
+    showMessage({ message: 'Please fix the errors in the form', type: 'danger' });
+    return;
+  }
+  setLoading(true);
+  try {
+    const response = await registerUser({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      password_confirmation: form.passwordConfirm,
+      phone_number: form.phone_number,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      country: form.country,
+      is_host: form.is_host,
+    });
+
+    const { token, user } = response.data;
+    await AsyncStorage.setItem('access_token', token);
+    await AsyncStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+    showMessage({ message: `Welcome ${user.name}! 🎉`, type: 'success' });
+    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    } catch (error) {
+    if (error.response?.data?.errors) {
+      setErrors(error.response.data.errors);
       showMessage({
-        message: 'Please fix the errors in the form',
+        message: 'Validation failed. Please check your inputs.',
         type: 'danger',
       });
-      return;
+    } else {
+      showMessage({ message: 'Something went wrong. Please try again.', type: 'danger' });
     }
-
-    setLoading(true);
-    try {
-      const response = await api.post('/register', {
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        password_confirmation: form.passwordConfirm,
-        phone_number: form.phone_number,
-        address: form.address,
-        city: form.city,
-        state: form.state,
-        country: form.country,
-        is_host: form.is_host,
-      });
-
-      if (response.data?.status === 201) {
-        const { token, user } = response.data;
-        await login(token, user);
-
-        await AsyncStorage.setItem('access_token', token);
-        await AsyncStorage.setItem('user', JSON.stringify(user));
-
-        showMessage({
-          message: `Welcome ${user.name}! 🎉`,
-          type: 'success',
-        });
-
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Home' }],
-        });
-      }
-    } catch (error) {
-      if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors);
-        showMessage({
-          message: 'Validation failed. Please check your inputs.',
-          type: 'danger',
-        });
-      } else {
-        showMessage({
-          message: 'Something went wrong. Please try again.',
-          type: 'danger',
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  } finally {
+    setLoading(false);
+  }
+};
   const renderInput = (key, placeholder, secure = false, keyboardType = 'default') => {
     const isPasswordField = key === 'password' || key === 'passwordConfirm';
     const showIcon = key === 'password' ? showPassword : showPasswordConfirm;
@@ -170,7 +150,6 @@ const RegisterScreen = () => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
       <AppHeader title="Register" onBack={() => navigation.goBack()} />
-
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {renderInput('name', 'Name')}
@@ -186,9 +165,7 @@ const RegisterScreen = () => {
           <View style={styles.switchContainer}>
             <View>
               <Text style={styles.switchLabel}>Register as Host</Text>
-              <Text style={styles.switchSubLabel}>
-                Earn money by hosting travelers
-              </Text>
+              <Text style={styles.switchSubLabel}>Earn money by hosting travelers</Text>
             </View>
             <Switch
               value={form.is_host}
@@ -204,11 +181,7 @@ const RegisterScreen = () => {
             disabled={loading}
             style={[styles.button, loading && styles.buttonDisabled]}
           >
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={styles.buttonText}>Register</Text>
-            )}
+            {loading ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Register</Text>}
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -232,29 +205,12 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
   },
   inputError: { borderColor: 'red' },
-  eyeIcon: {
-    position: 'absolute',
-    right: 10,
-    top: 12,
-  },
+  eyeIcon: { position: 'absolute', right: 10, top: 12 },
   errorText: { color: 'red', fontSize: 12, marginTop: 3 },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: 20,
-  },
+  switchContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 20 },
   switchLabel: { fontSize: 16, fontWeight: '500', color: colors.text },
   switchSubLabel: { fontSize: 12, color: colors.textLight },
-  button: {
-    width: '100%',
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
+  button: { width: '100%', height: 50, borderRadius: 12, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 30 },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: colors.white, fontSize: 18, fontWeight: 'bold' },
 });

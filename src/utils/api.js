@@ -1,14 +1,14 @@
 // utils/api.js
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
+import { showMessage } from 'react-native-flash-message';
 
 const API_BASE_URL = process.env.API_URL || 'https://nepalibnb.glaciersafari.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-  timeout: 15000, // optional timeout
+  timeout: 15000,
 });
 
 // Attach token automatically
@@ -18,22 +18,38 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Global response error handler
+// Handle responses and errors
 api.interceptors.response.use(
   response => response,
   async (error) => {
     if (error.response?.status === 401) {
+      // Session expired
       await AsyncStorage.removeItem('access_token');
-      Alert.alert('Session Expired', 'Please log in again.');
-      // Optional: trigger a global navigation reset
-      // You can use a navigation ref if needed
+      showMessage({
+        message: 'Session Expired',
+        description: 'Please log in again.',
+        type: 'danger',
+      });
     } else if (error.response) {
-      Alert.alert('Error', error.response.data?.message || 'Something went wrong.');
+      showMessage({
+        message: 'Error',
+        description: error.response.data?.message || 'Something went wrong.',
+        type: 'danger',
+      });
     } else if (error.request) {
-      Alert.alert('Error', 'Server not responding. Please try again later.');
+      showMessage({
+        message: 'Error',
+        description: 'Server not responding. Please try again later.',
+        type: 'danger',
+      });
     } else {
-      Alert.alert('Error', error.message);
+      showMessage({
+        message: 'Error',
+        description: error.message,
+        type: 'danger',
+      });
     }
+
     return Promise.reject(error);
   }
 );
