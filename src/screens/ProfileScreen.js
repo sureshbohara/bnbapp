@@ -1,33 +1,48 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { 
-  View, Text, StyleSheet, Image, ScrollView, 
-  ActivityIndicator, TouchableOpacity 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import colors from '../constants/colors';
 import AppHeader from '../components/common/AppHeader';
 import { getProfile } from '../services/apiService';
 import { AuthContext } from '../contexts/AuthContext';
 import { showMessage } from 'react-native-flash-message';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const ProfileScreen = ({ navigation }) => {
-  const [user, setUser] = useState(null);
+  const { user: authUser, logout } = useContext(AuthContext);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { logout } = useContext(AuthContext);
 
   useEffect(() => {
+    if (!authUser) {
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      return;
+    }
     fetchProfile();
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchProfile(); // Refresh profile on return from Edit screen
-    });
+    const unsubscribe = navigation.addListener('focus', fetchProfile);
     return unsubscribe;
-  }, [navigation]);
+  }, [authUser, navigation]);
 
   const fetchProfile = async () => {
+    setLoading(true);
     try {
       const data = await getProfile();
-      if (data) setUser(data);
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
+      if (data) {
+        setProfile(data);
+      } else {
+        setProfile(null);
+        showMessage({ message: 'No profile data found', type: 'warning' });
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -35,16 +50,8 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleLogout = async () => {
     await logout();
-    showMessage({
-      message: 'Logout successful',
-      type: 'success',
-      duration: 3000,
-      icon: 'success',
-    });
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Login' }],
-    });
+    showMessage({ message: 'Logout successful', type: 'success' });
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
 
   if (loading) {
@@ -55,7 +62,7 @@ const ProfileScreen = ({ navigation }) => {
     );
   }
 
-  if (!user) {
+  if (!profile) {
     return (
       <View style={styles.center}>
         <Text style={{ color: colors.text }}>Failed to load profile.</Text>
@@ -64,131 +71,177 @@ const ProfileScreen = ({ navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <AppHeader title="Profile" onBack={() => navigation.goBack()} />
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <AppHeader title="My Profile" onBack={() => navigation.goBack()} />
 
-      {/* Profile Header */}
-      <View style={styles.profileHeader}>
+      {/* Profile Card */}
+      <View style={styles.profileCard}>
         <Image
-          source={{ uri: user.image_url || 'https://picsum.photos/120/120' }}
+          source={{ uri: profile.image_url || 'https://picsum.photos/120/120' }}
           style={styles.avatar}
         />
-        <Text style={styles.name}>{user.name}</Text>
-
+        <Text style={styles.name}>{profile.name || 'Guest User'}</Text>
         <View style={styles.roleBadge}>
-          <Text style={styles.roleText}>{user.role || 'Guest'}</Text>
+          <Ionicons name="person-outline" size={16} color={colors.primary} />
+          <Text style={styles.roleText}>{profile.role || 'Guest'}</Text>
         </View>
-
-        <Text style={styles.phone}>{user.phone_number}</Text>
+        <Text style={styles.phone}>{profile.phone_number || '-'}</Text>
         <Text style={styles.joiningDate}>
-          Joined: {user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}
+          Member since {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
         </Text>
       </View>
 
-        <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('EditProfile')}>
-        <Text style={styles.editText}>Edit Profile</Text>
-      </TouchableOpacity>
+      {/* Quick Actions */}
+      <View style={styles.actionsRow}>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: colors.secondary }]}
+          onPress={() => navigation.navigate('EditProfile')}
+        >
+          <Ionicons name="create-outline" size={20} color="#fff" />
+          <Text style={styles.actionText}>Edit Profile</Text>
+        </TouchableOpacity>
 
-      {/* Address Card */}
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+          onPress={() => navigation.navigate('ChangePassword')}
+        >
+          <Ionicons name="lock-closed-outline" size={20} color="#fff" />
+          <Text style={styles.actionText}>Change Password</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: '#e74c3c' }]}
+          onPress={handleLogout}
+        >
+          <Ionicons name="log-out-outline" size={20} color="#fff" />
+          <Text style={styles.actionText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Info Sections */}
       <View style={styles.infoCard}>
         <Text style={styles.sectionTitle}>Address</Text>
-        <Text style={styles.infoValue}>{user.address}</Text>
-        <Text style={styles.infoValue}>{user.city}</Text>
-        <Text style={styles.infoValue}>{user.state}</Text>
-        <Text style={styles.infoValue}>{user.country}</Text>
+        <View style={styles.infoRow}>
+          <Ionicons name="location-outline" size={18} color={colors.primary} />
+          <Text style={styles.infoValue}>{profile.address || '-'}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="business-outline" size={18} color={colors.primary} />
+          <Text style={styles.infoValue}>{profile.city || '-'}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="map-outline" size={18} color={colors.primary} />
+          <Text style={styles.infoValue}>{profile.state || '-'}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="earth-outline" size={18} color={colors.primary} />
+          <Text style={styles.infoValue}>{profile.country || '-'}</Text>
+        </View>
       </View>
 
-      {/* About Me Card */}
       <View style={styles.infoCard}>
         <Text style={styles.sectionTitle}>About Me</Text>
-        <Text style={styles.infoValue}>{user.bio || 'No description provided.'}</Text>
+        <View style={styles.infoRow}>
+          <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+          <Text style={styles.infoValue}>{profile.bio || 'No description provided.'}</Text>
+        </View>
       </View>
-
-      {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f6f8' },
+  container: { flex: 1, backgroundColor: '#f5f6fa' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Profile Header
-  profileHeader: {
+  // Profile Card
+  profileCard: {
     backgroundColor: colors.white,
-    margin: 15,
-    marginTop: 25,
+    margin: 16,
     borderRadius: 20,
+    alignItems: 'center',
     paddingVertical: 25,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 5 },
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  avatar: { width: 120, height: 120, borderRadius: 60, borderWidth: 2, borderColor: colors.primary },
-  name: { fontSize: 24, fontWeight: '700', color: colors.text, marginTop: 15 },
-  roleBadge: {
-    backgroundColor: colors.primary + '20',
     paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 15,
-    marginVertical: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+    elevation: 3,
   },
-  roleText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
-  phone: { fontSize: 16, color: colors.textLight, marginTop: 5 },
-  joiningDate: { fontSize: 13, color: colors.textLight, marginTop: 3 },
-
-  // Edit Button
-  editBtn: {
-    backgroundColor: colors.secondary,
-    marginHorizontal: 20,
-    borderRadius: 25,
-    paddingVertical: 12,
+  avatar: {
+    width: 110,
+    height: 110,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: colors.primary,
+    marginBottom: 10,
+  },
+  name: { fontSize: 22, fontWeight: '700', color: colors.text },
+  roleBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 15,
-    marginBottom: 5,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginTop: 6,
   },
-  editText: {
+  roleText: { color: colors.primary, fontWeight: '600', marginLeft: 6, fontSize: 13 },
+  phone: { fontSize: 15, color: colors.textLight, marginTop: 8 },
+  joiningDate: { fontSize: 13, color: colors.textLight, marginTop: 4 },
+
+  // Actions
+  actionsRow: {
+    flexDirection: 'column',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginVertical: 6,
+    paddingHorizontal: 15,
+  },
+  actionText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
+    marginLeft: 10,
+    fontSize: 15,
   },
 
-  // Info Cards
+  // Info Card
   infoCard: {
     backgroundColor: colors.white,
-    marginHorizontal: 15,
+    marginHorizontal: 16,
     borderRadius: 15,
-    padding: 20,
-    marginTop: 15,
+    padding: 18,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 5,
-    elevation: 3,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 10, color: colors.text },
-  infoValue: { fontSize: 14, color: colors.textLight, marginBottom: 5 },
-
-  // Logout Button
-  logoutBtn: {
-    backgroundColor: colors.primary,
-    margin: 20,
-    borderRadius: 25,
-    paddingVertical: 15,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+    color: colors.text,
+  },
+  infoRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 5,
-    elevation: 3,
+    marginBottom: 8,
   },
-  logoutText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  infoValue: {
+    fontSize: 14,
+    color: colors.textLight,
+    marginLeft: 8,
+    flexShrink: 1,
+  },
 });
 
 export default ProfileScreen;

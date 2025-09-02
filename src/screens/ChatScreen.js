@@ -12,7 +12,7 @@ import {
   StatusBar,
 } from 'react-native';
 import colors from '../constants/colors';
-import { fetchUsers, fetchChats } from '../services/apiService';
+import { fetchChatUsers, fetchMessages, sendMessageApi } from '../services/apiService';
 import AppHeader from '../components/common/AppHeader';
 import { useNavigation } from '@react-navigation/native';
 
@@ -24,30 +24,40 @@ const ChatScreen = () => {
   const [message, setMessage] = useState('');
   const flatListRef = useRef();
 
+  // Load users when component mounts
   useEffect(() => {
     const loadUsers = async () => {
-      const data = await fetchUsers();
-      if (data) setUsers(data);
+      const data = await fetchChatUsers();
+      setUsers(data);
     };
     loadUsers();
   }, []);
 
+  // Open chat with a user
   const openChat = async (user) => {
     setSelectedUser(user);
-    const data = await fetchChats();
-    if (data) setChats(data);
+    const data = await fetchMessages(user.id);
+    setChats(data);
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
-  const sendMessage = () => {
-    if (!message.trim()) return;
-    const newMsg = { id: Date.now().toString(), user: 'You', message, timestamp: 'Now' };
-    setChats([...chats, newMsg]);
+  // Send message
+  const sendMessage = async () => {
+    if (!message.trim() || !selectedUser) return;
+
+    const tempMsg = message.trim();
     setMessage('');
-    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
+    try {
+      const savedMessage = await sendMessageApi(selectedUser.id, tempMsg);
+      setChats((prev) => [...prev, savedMessage]);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
   };
 
-
+  // Render user list if no chat selected
   if (!selectedUser) {
     return (
       <View style={styles.container}>
@@ -58,10 +68,10 @@ const ChatScreen = () => {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.userCard} onPress={() => openChat(item)}>
-              <Image source={{ uri: item.avatar }} style={styles.avatar} />
+              <Image source={{ uri: item.image_url || 'https://nepalibnb.glaciersafari.com/default/noimage.png' }} style={styles.avatar} />
               <View>
                 <Text style={styles.userName}>{item.name}</Text>
-                <Text style={styles.userRole}>{item.role}</Text>
+                <Text style={styles.userRole}>{item.role || ''}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -71,6 +81,7 @@ const ChatScreen = () => {
     );
   }
 
+  // Render chat messages
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: '#f0f2f5' }}
@@ -81,7 +92,7 @@ const ChatScreen = () => {
         <StatusBar barStyle="dark-content" backgroundColor={colors.cardBackground} />
         <AppHeader
           title={selectedUser.name}
-          avatar={selectedUser.avatar}
+          avatar={selectedUser.image_url || 'https://nepalibnb.glaciersafari.com/default/noimage.png'}
           onBack={() => setSelectedUser(null)}
         />
 
@@ -90,10 +101,10 @@ const ChatScreen = () => {
           data={chats}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => {
-            const isMe = item.user === 'You';
+            const isMe = item.sender_id === 'me' || item.sender_id === undefined;
             return (
               <View style={[styles.messageRow, isMe ? styles.rightRow : styles.leftRow]}>
-                {!isMe && <Image source={{ uri: selectedUser.avatar }} style={styles.messageAvatar} />}
+                {!isMe && <Image source={{ uri: selectedUser.image_url }} style={styles.messageAvatar} />}
                 <View
                   style={[
                     styles.bubble,
@@ -102,7 +113,7 @@ const ChatScreen = () => {
                   ]}
                 >
                   <Text style={[styles.messageText, isMe && { color: '#fff' }]}>{item.message}</Text>
-                  <Text style={styles.timestamp}>{item.timestamp}</Text>
+                  <Text style={styles.timestamp}>{item.created_at ? item.created_at.split(' ')[1] : ''}</Text>
                 </View>
               </View>
             );

@@ -12,12 +12,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import colors from '../../constants/colors';
 import { AuthContext } from '../../contexts/AuthContext';
+import MenuModal from '../MenuModal';
 
 const SearchBar = () => {
   const [query, setQuery] = useState('');
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [menuVisible, setMenuVisible] = useState(false);
   const navigation = useNavigation();
-  const { user } = useContext(AuthContext); // Get current logged-in user
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -45,7 +47,9 @@ const SearchBar = () => {
           <Text style={styles.headerText}>
             {user?.name ? `Hi, ${user.name}` : 'EXPLORE'}
           </Text>
-          <TouchableOpacity>
+
+          {/* Menu Icon */}
+          <TouchableOpacity onPress={() => setMenuVisible(true)}>
             <Ionicons name="menu" size={28} color={colors.white} />
           </TouchableOpacity>
         </View>
@@ -78,6 +82,9 @@ const SearchBar = () => {
           )}
         </View>
       </View>
+
+      {/* Menu Modal */}
+      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
     </View>
   );
 };

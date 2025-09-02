@@ -1,30 +1,20 @@
+// SplashScreen.js
 import React, { useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, Image, ActivityIndicator, Animated } from 'react-native';
 import colors from '../constants/colors';
 import { SettingsConstants } from '../constants/SettingsConstants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const SPLASH_DELAY = 2000;
-
-const SplashScreen = ({ navigation }) => {
-  const { settings, loading } = useContext(SettingsConstants);
+const SplashScreen = () => {
+  const { settings } = useContext(SettingsConstants);
   const fadeAnim = new Animated.Value(0);
 
   useEffect(() => {
-    // Fade in animation for slogan
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
     }).start();
-
-    const checkLogin = async () => {
-      await new Promise(res => setTimeout(res, SPLASH_DELAY));
-      const token = await AsyncStorage.getItem('access_token');
-      navigation.replace(token ? 'Home' : 'Login');
-    };
-    checkLogin();
-  }, [navigation]);
+  }, []);
 
   return (
     <View style={styles.container}>

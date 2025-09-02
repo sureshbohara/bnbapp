@@ -42,7 +42,7 @@ const LoginScreen = () => {
     try {
       const user = await login(email, password);
       showMessage({ message: `Welcome ${user.name}! 🎉`, type: 'success' });
-      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch {
       // error handled in AuthContext
     } finally {
@@ -94,7 +94,7 @@ const LoginScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.loginBtn, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color={colors.white} /> : <Text style={styles.loginText}>Login</Text>}
+            {loading ? <ActivityIndicator color={colors.white} /> : <Text style={styles.loginText}> Login </Text>}
           </TouchableOpacity>
 
           <View style={styles.registerWrapper}>

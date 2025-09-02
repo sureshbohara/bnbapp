@@ -83,14 +83,19 @@ const handleRegister = async () => {
       country: form.country,
       is_host: form.is_host,
     });
+    const token = response.data?.token ?? response?.token;
+    const user = response.data?.user ?? response?.user;
 
-    const { token, user } = response.data;
+    if (!token || !user) {
+      throw new Error('Invalid API response');
+    }
     await AsyncStorage.setItem('access_token', token);
     await AsyncStorage.setItem('user', JSON.stringify(user));
     setUser(user);
     showMessage({ message: `Welcome ${user.name}! 🎉`, type: 'success' });
-    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
-    } catch (error) {
+    navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+  } catch (error) {
+    console.log('Register Error:', error);
     if (error.response?.data?.errors) {
       setErrors(error.response.data.errors);
       showMessage({
@@ -104,6 +109,7 @@ const handleRegister = async () => {
     setLoading(false);
   }
 };
+
   const renderInput = (key, placeholder, secure = false, keyboardType = 'default') => {
     const isPasswordField = key === 'password' || key === 'passwordConfirm';
     const showIcon = key === 'password' ? showPassword : showPasswordConfirm;

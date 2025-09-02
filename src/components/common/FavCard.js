@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import colors from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
@@ -9,14 +10,20 @@ const CARD_HEIGHT = 130;
 const scaleFont = size => Math.round(size * (width / 375));
 
 const FavCard = ({ room, onRemove }) => {
-  const scale = new Animated.Value(1);
+  const navigation = useNavigation();
+  const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
   const onPressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
 
   return (
     <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
-      <TouchableOpacity activeOpacity={0.9} onPressIn={onPressIn} onPressOut={onPressOut}>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        onPress={() => navigation.navigate('RoomDetails', { slug: room.slug })}
+      >
         <View style={styles.inner}>
           <View style={styles.imageContainer}>
             <Image source={{ uri: room.image_url }} style={styles.image} />
