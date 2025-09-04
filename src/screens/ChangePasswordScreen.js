@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { showMessage } from 'react-native-flash-message';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AuthContext } from '../contexts/AuthContext';
 import { changePasswordApi } from '../services/apiService';
 import colors from '../constants/colors';
@@ -18,10 +19,16 @@ import AppHeader from '../components/common/AppHeader';
 
 const ChangePasswordScreen = ({ navigation }) => {
   const { user } = useContext(AuthContext);
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Toggle password visibility
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -55,18 +62,31 @@ const ChangePasswordScreen = ({ navigation }) => {
     }
   };
 
+  const renderPasswordInput = (value, setValue, placeholder, visible, setVisible) => (
+    <View style={styles.inputWrapper}>
+      <TextInput
+        placeholder={placeholder}
+        secureTextEntry={!visible}
+        style={styles.input}
+        value={value}
+        onChangeText={setValue}
+      />
+      <TouchableOpacity onPress={() => setVisible(!visible)} style={styles.eyeIcon}>
+        <Ionicons name={visible ? 'eye' : 'eye-off'} size={22} color="#555" />
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Full-width Header */}
       <View style={styles.headerWrapper}>
         <AppHeader title="Change Password" onBack={() => navigation.goBack()} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Instruction List */}
         <Text style={styles.instructionTitle}>Please follow these instructions:</Text>
         <View style={styles.instructionList}>
           <Text style={styles.instructionItem}>1. Enter your current password correctly.</Text>
@@ -76,40 +96,16 @@ const ChangePasswordScreen = ({ navigation }) => {
           <Text style={styles.instructionItem}>5. Make sure your new password is different from the old one.</Text>
         </View>
 
-        {/* Input fields */}
-        <TextInput
-          placeholder="Current Password"
-          secureTextEntry
-          style={styles.input}
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-        />
-        <TextInput
-          placeholder="New Password"
-          secureTextEntry
-          style={styles.input}
-          value={newPassword}
-          onChangeText={setNewPassword}
-        />
-        <TextInput
-          placeholder="Confirm New Password"
-          secureTextEntry
-          style={styles.input}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-        />
+        {renderPasswordInput(currentPassword, setCurrentPassword, 'Current Password', showCurrent, setShowCurrent)}
+        {renderPasswordInput(newPassword, setNewPassword, 'New Password', showNew, setShowNew)}
+        {renderPasswordInput(confirmPassword, setConfirmPassword, 'Confirm New Password', showConfirm, setShowConfirm)}
 
-        {/* Change Password Button */}
         <TouchableOpacity
           style={[styles.button, loading && { opacity: 0.7 }]}
           onPress={handleChangePassword}
           disabled={loading}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Change Password</Text>
-          )}
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Change Password</Text>}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -145,15 +141,24 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     lineHeight: 20,
   },
+  inputWrapper: {
+    position: 'relative',
+    marginBottom: 15,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 10,
     padding: 12,
-    marginBottom: 15,
+    paddingRight: 45,
     backgroundColor: '#fff',
     fontSize: 15,
     color: '#222',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
   },
   button: {
     backgroundColor: colors.primary,

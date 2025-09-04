@@ -22,7 +22,7 @@ const ProfileScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (!authUser) {
-      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      // navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
       return;
     }
     fetchProfile();
@@ -51,7 +51,7 @@ const ProfileScreen = ({ navigation }) => {
   const handleLogout = async () => {
     await logout();
     showMessage({ message: 'Logout successful', type: 'success' });
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    // navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
 
   if (loading) {
@@ -81,14 +81,22 @@ const ProfileScreen = ({ navigation }) => {
           style={styles.avatar}
         />
         <Text style={styles.name}>{profile.name || 'Guest User'}</Text>
+
         <View style={styles.roleBadge}>
           <Ionicons name="person-outline" size={16} color={colors.primary} />
           <Text style={styles.roleText}>{profile.role || 'Guest'}</Text>
         </View>
+
+        {/* Optional Last Seen */}
+        <Text style={styles.lastSeen}>
+          Last seen: {profile.last_seen ? new Date(profile.last_seen).toLocaleString() : 'Offline'}
+        </Text>
+
         <Text style={styles.phone}>{profile.phone_number || '-'}</Text>
         <Text style={styles.joiningDate}>
           Member since {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
         </Text>
+        <Text style={styles.phone}>{profile.email || '-'}</Text>
       </View>
 
       {/* Quick Actions */}
@@ -107,6 +115,14 @@ const ProfileScreen = ({ navigation }) => {
         >
           <Ionicons name="lock-closed-outline" size={20} color="#fff" />
           <Text style={styles.actionText}>Change Password</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+          onPress={() => navigation.navigate('MyBook')}
+        >
+          <Ionicons name="book-outline" size={20} color="#fff" />
+          <Text style={styles.actionText}>Booking List</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -187,6 +203,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   roleText: { color: colors.primary, fontWeight: '600', marginLeft: 6, fontSize: 13 },
+  lastSeen: { fontSize: 12, color: colors.textLight, marginTop: 4 },
   phone: { fontSize: 15, color: colors.textLight, marginTop: 8 },
   joiningDate: { fontSize: 13, color: colors.textLight, marginTop: 4 },
 

@@ -67,8 +67,8 @@ const RoomCard = ({ room }) => {
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    marginBottom: 16,
-    borderRadius: 16,
+    marginBottom: 0,
+    borderRadius: 10,
     backgroundColor: colors.cardBackground,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -81,8 +81,8 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: IMAGE_HEIGHT,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
     resizeMode: 'cover',
   },
   favoriteBtn: {

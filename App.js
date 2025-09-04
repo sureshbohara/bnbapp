@@ -8,13 +8,14 @@ import SplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
-import NewPasswordScreen from './src/screens/NewPasswordScreen';
 import FooterTab from './src/components/navigation/FooterTab';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import RoomDetailsScreen from './src/screens/RoomDetailsScreen';
 import BookingConfirmation from './src/screens/BookingConfirmation';
+import MyBookingsScreen from './src/screens/MyBookingsScreen';
 import CmsScreen from './src/screens/CmsScreen';
+import FaqsScreen from './src/screens/FaqsScreen';
 
 import { AuthProvider, AuthContext } from './src/contexts/AuthContext';
 import { SettingsProvider } from './src/constants/SettingsConstants';
@@ -28,7 +29,6 @@ const AuthStack = () => (
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
     <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-    <Stack.Screen name="NewPassword" component={NewPasswordScreen} />
   </Stack.Navigator>
 );
 
@@ -43,7 +43,9 @@ const AppStack = () => (
     <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
     <Stack.Screen name="RoomDetails" component={RoomDetailsScreen} />
     <Stack.Screen name="BookingConfirmation" component={BookingConfirmation} />
+    <Stack.Screen name="MyBook" component={MyBookingsScreen} />
     <Stack.Screen name="CmsScreen" component={CmsScreen} />
+    <Stack.Screen name="FaqsScreen" component={FaqsScreen} />
   </Stack.Navigator>
 );
 

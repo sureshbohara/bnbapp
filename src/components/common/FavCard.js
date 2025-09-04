@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import colors from '../../constants/colors';
@@ -16,38 +16,41 @@ const FavCard = ({ room, onRemove }) => {
   const onPressIn = () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
   const onPressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
 
+  // Create Animated TouchableOpacity
+  const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
   return (
-    <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        onPress={() => navigation.navigate('RoomDetails', { slug: room.slug })}
-      >
-        <View style={styles.inner}>
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: room.image_url }} style={styles.image} />
-            <View style={styles.overlay} />
-            <TouchableOpacity style={styles.favoriteBtn} onPress={() => onRemove(room)}>
-              <Ionicons name="heart" size={22} color={colors.danger} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.content}>
-            <Text style={styles.title} numberOfLines={1}>{room.title}</Text>
-            <Text style={styles.location} numberOfLines={1}>{room.city}, {room.address}</Text>
-            <View style={styles.bottomRow}>
-              <View style={styles.rating}>
-                <Ionicons name="star" size={14} color="#f5a623" />
-                <Text style={styles.ratingText}>{room.average_rating || 4.5}</Text>
-              </View>
-              <View style={styles.priceContainer}>
-                <Text style={styles.price}>NPR {room.new_price}/person</Text>
-              </View>
+    <AnimatedTouchable
+      activeOpacity={0.9}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      onPress={() => navigation.navigate('RoomDetails', { slug: room.slug })}
+      style={[styles.card, { transform: [{ scale }] }]}
+    >
+      <View style={styles.inner}>
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: room.image_url }} style={styles.image} />
+          <View style={styles.overlay} />
+          {/* Heart button */}
+          <TouchableOpacity style={styles.favoriteBtn} onPress={() => onRemove(room)}>
+            <Ionicons name="heart" size={22} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.title} numberOfLines={1}>{room.title}</Text>
+          <Text style={styles.location} numberOfLines={1}>{room.city}, {room.address}</Text>
+          <View style={styles.bottomRow}>
+            <View style={styles.rating}>
+              <Ionicons name="star" size={14} color="#f5a623" />
+              <Text style={styles.ratingText}>{room.average_rating || 4.5}</Text>
+            </View>
+            <View style={styles.priceContainer}>
+              <Text style={styles.price}>NPR {room.new_price}/person</Text>
             </View>
           </View>
         </View>
-      </TouchableOpacity>
-    </Animated.View>
+      </View>
+    </AnimatedTouchable>
   );
 };
 

@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -48,7 +49,6 @@ const SearchBar = () => {
             {user?.name ? `Hi, ${user.name}` : 'EXPLORE'}
           </Text>
 
-          {/* Menu Icon */}
           <TouchableOpacity onPress={() => setMenuVisible(true)}>
             <Ionicons name="menu" size={28} color={colors.white} />
           </TouchableOpacity>
@@ -96,6 +96,10 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
     elevation: 6,
     paddingBottom: 30,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
   },
   safeArea: {
     paddingBottom: 12,
@@ -114,7 +118,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   searchWrapper: {
-    marginTop: 0,
+    marginTop: Platform.OS === 'ios' ? 0 : 10,
     paddingHorizontal: 20,
   },
   searchBox: {

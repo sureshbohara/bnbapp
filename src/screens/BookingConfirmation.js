@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,31 @@ import {
   TextInput,
   StatusBar,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { showMessage } from 'react-native-flash-message';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { fetchBookingSubmit } from '../services/apiService';
 import colors from '../constants/colors';
 import AppHeader from '../components/common/AppHeader';
-
-const BookingConfirmation = ({ route, navigation }) => {
+import { SettingsConstants } from '../constants/SettingsConstants';
+const BookingConfirmation = () => {
+  const { settings } = useContext(SettingsConstants);
   const insets = useSafeAreaInsets();
-  const { slug, checkInDate, checkOutDate, title, price, cleaningFee, serviceFee } = route.params;
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  const {
+    listingId,
+    checkInDate,
+    checkOutDate,
+    title,
+    price,
+    cleaningFee,
+    serviceFee,
+  } = route.params;
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [adults, setAdults] = useState(1);
@@ -26,104 +41,107 @@ const BookingConfirmation = ({ route, navigation }) => {
   const [pets, setPets] = useState(0);
   const [quote, setQuote] = useState('');
   const [paymentScreenshot, setPaymentScreenshot] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const nights = Math.max(
     1,
     Math.ceil((new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24))
   );
 
-  const totalPrice =
-    Number(price) * nights +
-    Number(cleaningFee || 0) +
-    Number(serviceFee || 0);
+  const totalPrice = Number(price) * nights + Number(cleaningFee || 0) + Number(serviceFee || 0);
+
+  const formatDate = (date) => new Date(date).toISOString().split('T')[0];
 
   const handlePickImage = () => {
-    launchImageLibrary({ mediaType: 'photo' }, (response) => {
-      if (!response.didCancel && !response.errorCode) {
-        setPaymentScreenshot(response.assets[0]);
+    const options = {
+      mediaType: 'photo',
+      maxWidth: 1024,
+      maxHeight: 768,
+      quality: 0.7,
+      includeBase64: false,
+    };
+
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        showMessage({
+          message: 'Image Picker Error',
+          description: response.errorMessage || 'Failed to pick image.',
+          type: 'danger',
+        });
+        return;
       }
+
+      const asset = response.assets[0];
+      if (asset.fileSize && asset.fileSize > 2 * 1024 * 1024) {
+        showMessage({
+          message: 'File Too Large',
+          description: 'Payment screenshot must be less than 2MB.',
+          type: 'warning',
+        });
+        return;
+      }
+
+      // Ensure URI starts with file:// for iOS
+      const uri = asset.uri.startsWith('file://') ? asset.uri : 'file://' + asset.uri;
+
+      setPaymentScreenshot({
+        uri,
+        type: asset.type || 'image/jpeg',
+        name: asset.fileName || 'screenshot.jpg',
+      });
     });
   };
 
   const handleConfirmBooking = async () => {
-    if (!phoneNumber) {
-      showMessage({
-        message: 'Missing Info',
-        description: 'Please provide a phone number.',
-        type: 'warning',
-        icon: 'warning',
-      });
-      return;
-    }
-
-    if (!paymentScreenshot) {
-      showMessage({
-        message: 'Payment Required',
-        description: 'Please upload payment screenshot.',
-        type: 'warning',
-        icon: 'warning',
-      });
-      return;
-    }
-
-    const totalGuests = adults + children + infants;
-    const maxGuests = 4;
-    if (totalGuests > maxGuests) {
-      showMessage({
-        message: 'Invalid Guests',
-        description: `This listing can accommodate up to ${maxGuests} guests.`,
-        type: 'danger',
-        icon: 'danger',
-      });
-      return;
-    }
+    setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('slug', slug);
-      formData.append('title', title);
-      formData.append('checkInDate', checkInDate);
-      formData.append('checkOutDate', checkOutDate);
-      formData.append('nights', nights);
-      formData.append('price', totalPrice);
-      formData.append('phoneNumber', phoneNumber);
-      formData.append('adults', adults);
-      formData.append('children', children);
-      formData.append('infants', infants);
-      formData.append('pets', pets);
-      formData.append('quote', quote);
-      formData.append('qrImage', 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=BookingDummy');
+      // Basic validation
+      if (!listingId) throw new Error('Listing ID is required');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (new Date(checkInDate) < today) throw new Error('Check-in date must be today or later');
+      if (new Date(checkOutDate) <= new Date(checkInDate)) throw new Error('Check-out must be after check-in');
+      if (!phoneNumber || phoneNumber.length < 8 || phoneNumber.length > 20)
+        throw new Error('Phone number must be 8-20 characters');
+      if (!paymentScreenshot) throw new Error('Please upload payment screenshot');
+      if (adults + children + infants < 1) throw new Error('At least one guest is required');
 
-      formData.append('paymentScreenshot', {
+      // Prepare FormData
+      const formData = new FormData();
+      formData.append('listing_id', listingId.toString());
+      formData.append('check_in', formatDate(checkInDate));
+      formData.append('check_out', formatDate(checkOutDate));
+      formData.append('adults', adults.toString());
+      formData.append('children', children.toString());
+      formData.append('infants', infants.toString());
+      formData.append('pets', pets.toString());
+      formData.append('phone_number', phoneNumber);
+      formData.append('special_requests', quote || '');
+      formData.append('terms_accepted', '1');
+      formData.append('total_price', totalPrice.toString());
+      formData.append('payment_screenshot', {
         uri: paymentScreenshot.uri,
         type: paymentScreenshot.type,
-        name: paymentScreenshot.fileName,
+        name: paymentScreenshot.name,
       });
 
-      const response = await fetch('https://your-backend.com/api/bookings', {
-        method: 'POST',
-        body: formData,
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const response = await fetchBookingSubmit(formData);
+
+      if (response.status === 201) {
+        showMessage({ message: 'Booking Confirmed', type: 'success' });
+         navigation.reset({
+         index: 0,
+         routes: [{ name: 'MyBook' }],
       });
-
-      const data = await response.json();
-
-      showMessage({
-        message: 'Booking Confirmed',
-        description: 'Your booking has been successfully submitted!',
-        type: 'success',
-        icon: 'success',
-      });
-
-      navigation.navigate('Home');
+      } else {
+        showMessage({ message: response.data?.message || 'Booking failed', type: 'danger' });
+      }
     } catch (error) {
-      showMessage({
-        message: 'Error',
-        description: 'Failed to confirm booking.',
-        type: 'danger',
-        icon: 'danger',
-      });
-      console.error(error);
+      showMessage({ message: 'Error', description: error.message || 'Booking failed', type: 'danger' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -132,7 +150,7 @@ const BookingConfirmation = ({ route, navigation }) => {
       <Text style={styles.label}>{label}</Text>
       <View style={styles.counter}>
         <TouchableOpacity
-          onPress={() => setValue(value > 0 ? value - 1 : 0)}
+          onPress={() => setValue(Math.max(0, value - 1))}
           style={styles.counterBtn}
         >
           <Text style={styles.counterText}>-</Text>
@@ -149,14 +167,14 @@ const BookingConfirmation = ({ route, navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.cardBackground} translucent />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.cardBackground} />
       <AppHeader title="Booking Details" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
         <Text style={styles.title}>{title}</Text>
 
-        {/* Dates Card */}
+        {/* Dates */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Dates</Text>
           <View style={styles.dateRow}>
@@ -171,7 +189,7 @@ const BookingConfirmation = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Phone */}
+        {/* Contact */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Contact</Text>
           <TextInput
@@ -204,7 +222,7 @@ const BookingConfirmation = ({ route, navigation }) => {
           />
         </View>
 
-        {/* Price Breakdown */}
+        {/* Price */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Price</Text>
           <Text style={styles.priceText}>Price per night: NPR {price}</Text>
@@ -215,20 +233,20 @@ const BookingConfirmation = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {/* QR Code */}
+        {/* Payment QR */}
         <View style={styles.card}>
           <Text style={styles.instructionText}>
-            Scan this QR to pay. Payment must be completed before sending screenshot to confirm booking.
+            Scan this QR to pay. Payment must be completed before sending screenshot.
           </Text>
-          <Image
-            source={{ uri: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=BookingDummy' }}
-            style={styles.qrCode}
-            resizeMode="contain"
-          />
-          <Text style={{ textAlign: 'center', marginTop: 8, color: colors.textLight }}>Scan for payment</Text>
+          {settings?.logo && (
+            <Image source={{ uri: settings.logo }} style={styles.qrCode} resizeMode="contain" />
+          )}
+          <Text style={{ textAlign: 'center', marginTop: 8, color: colors.textLight }}>
+            Scan for payment
+          </Text>
         </View>
 
-        {/* Upload Payment Screenshot */}
+        {/* Upload Screenshot */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Upload Payment Screenshot</Text>
           <TouchableOpacity style={styles.uploadBtn} onPress={handlePickImage}>
@@ -240,20 +258,25 @@ const BookingConfirmation = ({ route, navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Fixed Confirm Button */}
+      {/* Confirm Button */}
       <View style={[styles.fixedButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
-        <TouchableOpacity style={styles.bookBtn} onPress={handleConfirmBooking}>
-          <Text style={styles.bookBtnText}>Confirm Booking</Text>
+        <TouchableOpacity
+          style={styles.bookBtn}
+          onPress={handleConfirmBooking}
+          disabled={loading}
+        >
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}> Confirm Booking </Text>}
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default BookingConfirmation;
 
+// Styles (unchanged)
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6fa' },
+  container: { flex: 1, backgroundColor: colors.background },
   title: { fontSize: 20, fontWeight: '700', marginBottom: 10, marginTop: 10, color: colors.text },
   card: {
     backgroundColor: colors.white,
@@ -278,12 +301,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#fdfdfd',
   },
-  instructionText: {
-    fontSize: 14,
-    color: colors.textLight,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
+  instructionText: { fontSize: 14, color: colors.textLight, marginBottom: 8, textAlign: 'center' },
   counterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   counter: { flexDirection: 'row', alignItems: 'center' },
   counterBtn: { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },

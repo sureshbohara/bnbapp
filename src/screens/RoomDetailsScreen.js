@@ -47,31 +47,30 @@ const ListingDetailsScreen = ({ route, navigation }) => {
           const dateStr = date.toISOString().split('T')[0];
           marks[dateStr] = {
             selected: false,
-            color: '#68d391', // Green for available
+            color: '#68d391',
             disabled: false,
           };
         }
 
         // Override with API availabilities
         if (data.availabilities && Array.isArray(data.availabilities)) {
-          console.log('Availabilities:', data.availabilities); // Debug
           data.availabilities.forEach((slot) => {
             if (!slot.date) {
               console.warn('Missing date in slot:', slot);
               return;
             }
-            switch (slot.status?.toLowerCase()) { // Handle case sensitivity
+            switch (slot.status?.toLowerCase()) { 
               case 'booked':
                 marks[slot.date] = {
                   selected: true,
-                  color: '#ff6b6b', // Red for booked
+                  color: '#ff6b6b', 
                   disabled: true,
                 };
                 break;
               case 'blocked':
                 marks[slot.date] = {
                   selected: true,
-                  color: '#a0aec0', // Gray for blocked
+                  color: '#a0aec0',
                   disabled: true,
                 };
                 break;
@@ -79,7 +78,7 @@ const ListingDetailsScreen = ({ route, navigation }) => {
               default:
                 marks[slot.date] = {
                   selected: false,
-                  color: '#68d391', // Green for available
+                  color: '#68d391',
                   disabled: false,
                 };
                 break;
@@ -94,7 +93,7 @@ const ListingDetailsScreen = ({ route, navigation }) => {
           const date = new Date(dateStr);
           if (date < today.setHours(0, 0, 0, 0)) {
             marks[dateStr].disabled = true;
-            marks[dateStr].color = '#e0e0e0'; // Gray for past
+            marks[dateStr].color = '#e0e0e0'; 
           }
         });
 
@@ -117,7 +116,7 @@ const ListingDetailsScreen = ({ route, navigation }) => {
       if (!newMarkedDates[date].disabled) {
         newMarkedDates[date] = {
           selected: false,
-          color: '#68d391', // Reset to available
+          color: '#68d391', 
           disabled: false,
         };
       }
@@ -127,7 +126,7 @@ const ListingDetailsScreen = ({ route, navigation }) => {
       newMarkedDates[checkIn] = {
         selected: true,
         startingDay: true,
-        color: colors.primary, // Blue for check-in
+        color: colors.primary, 
         textColor: '#fff',
       };
 
@@ -135,7 +134,7 @@ const ListingDetailsScreen = ({ route, navigation }) => {
         newMarkedDates[checkOut] = {
           selected: true,
           endingDay: true,
-          color: '#ff6b6b', // Red for check-out
+          color: '#ff6b6b', 
           textColor: '#fff',
         };
 
@@ -150,7 +149,7 @@ const ListingDetailsScreen = ({ route, navigation }) => {
           if (!newMarkedDates[dateStr].disabled) {
             newMarkedDates[dateStr] = {
               selected: true,
-              color: '#b3e0ff', // Light blue for in-between
+              color: '#b3e0ff', 
               textColor: '#000',
             };
           }
@@ -167,7 +166,7 @@ const ListingDetailsScreen = ({ route, navigation }) => {
     const selected = new Date(day.dateString);
     const slot = room.availabilities?.find((a) => a.date === day.dateString);
 
-    // Prevent selecting past, booked, or blocked dates
+ 
     if (
       selected < today.setHours(0, 0, 0, 0) ||
       slot?.status?.toLowerCase() === 'booked' ||
@@ -212,6 +211,7 @@ const ListingDetailsScreen = ({ route, navigation }) => {
       slug,
       checkInDate,
       checkOutDate,
+      listingId: room.id,
       title: room.title,
       price: room.new_price,
       cleaningFee: room.cleaning_fee,

@@ -21,7 +21,6 @@ const MenuModal = ({ visible, onClose }) => {
 
   const slideAnim = useRef(new Animated.Value(300)).current;
 
-  // Fetch pages and animate
   useEffect(() => {
     if (visible) {
       Animated.timing(slideAnim, {
@@ -34,12 +33,19 @@ const MenuModal = ({ visible, onClose }) => {
         setLoading(true);
         fetchPages()
           .then((pages) => {
-            console.log('Fetched pages:', pages); // Check API response
             const links = pages.map((page) => ({
               name: page.name,
-              slug: page.slug ?? page.slug_url ?? page.id, // fallback keys
+              slug: page.slug ?? page.slug_url ?? page.id,
               screen: 'CmsScreen',
             }));
+
+            // Add a static FAQ link at the end
+            links.push({
+              name: 'FAQs',
+              slug: null,
+              screen: 'FaqsScreen',
+            });
+
             setMenuLinks(links);
             setLoading(false);
           })
@@ -57,7 +63,6 @@ const MenuModal = ({ visible, onClose }) => {
   };
 
   const handleLinkPress = (item) => {
-    if (!item.slug) return;
     navigation.push(item.screen, { slug: item.slug, name: item.name });
     handleClose();
   };
@@ -68,10 +73,7 @@ const MenuModal = ({ visible, onClose }) => {
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
             <Animated.View
-              style={[
-                styles.menuContainer,
-                { transform: [{ translateY: slideAnim }] },
-              ]}
+              style={[styles.menuContainer, { transform: [{ translateY: slideAnim }] }]}
             >
               <Text style={styles.menuTitle}>Menu</Text>
 
@@ -80,7 +82,7 @@ const MenuModal = ({ visible, onClose }) => {
               ) : (
                 <FlatList
                   data={menuLinks}
-                  keyExtractor={(item, index) => `${item.slug}_${index}`}
+                  keyExtractor={(item, index) => `${item.slug ?? 'faq'}_${index}`}
                   renderItem={({ item }) => (
                     <TouchableOpacity
                       style={styles.menuItem}

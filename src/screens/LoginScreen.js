@@ -42,7 +42,7 @@ const LoginScreen = () => {
     try {
       const user = await login(email, password);
       showMessage({ message: `Welcome ${user.name}! 🎉`, type: 'success' });
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      // navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch {
       // error handled in AuthContext
     } finally {
@@ -55,8 +55,8 @@ const LoginScreen = () => {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           {settings?.logo && <Image source={{ uri: settings.logo }} style={styles.logo} resizeMode="contain" />}
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Enter your email to login</Text>
+          <Text style={styles.title}> Find Your Next Stay </Text>
+          <Text style={styles.subtitle}> Rooms and houses ready for your adventure </Text>
 
           <View style={styles.inputWrapper}>
             <TextInput

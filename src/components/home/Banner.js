@@ -7,10 +7,10 @@ import colors from '../../constants/colors';
 const { width: screenWidth } = Dimensions.get('window');
 
 const Banner = ({ banners = [] }) => {
-  const slideWidth = screenWidth - 32; 
-  const slideHeight = slideWidth * 0.45; 
-
   if (!banners || banners.length === 0) return null;
+
+  const slideWidth = screenWidth - 32; 
+  const slideHeight = slideWidth * 0.45;
 
   return (
     <View style={styles.wrapper}>
@@ -27,7 +27,7 @@ const Banner = ({ banners = [] }) => {
         renderItem={({ item }) => (
           <View style={styles.slide}>
             <Image
-              source={{ uri: item.image_url }} 
+              source={{ uri: item.image_url }}
               style={styles.image}
               resizeMode="cover"
             />

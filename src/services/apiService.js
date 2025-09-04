@@ -5,7 +5,24 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Auth
 export const loginUser = (data) => callApi(() => api.post('/login', data));
-export const registerUser = (data) => callApi(() => api.post('/register', data));
+
+
+export const registerUser = async (formData) => {
+  try {
+    const response = await api.post('/register', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+    return response.data; 
+  } catch (error) {
+    if (error.response?.data) {
+      throw error.response.data;
+    }
+    throw error;
+  }
+};
+
+
 
 export const logoutUser = async () => {
   try { await callApi(() => api.post('/logout')); } catch {}
@@ -17,15 +34,17 @@ export const getProfile = () => callApi(() => api.get('/profile').then(res => re
 
 
 export const updateProfileUser = async (data) => {
-  return callApi(() => {
+  try {
     const formData = new FormData();
+
     Object.keys(data).forEach((key) => {
       if (data[key] !== undefined && data[key] !== null) {
-        if (key === 'image' && data[key]?.uri) {
-          formData.append('image', {
+        // Images
+        if (['image', 'image1', 'image2'].includes(key) && data[key]?.uri) {
+          formData.append(key, {
             uri: data[key].uri,
             type: data[key].type || 'image/jpeg',
-            name: data[key].fileName || 'profile.jpg',
+            name: data[key].fileName || `${key}.jpg`,
           });
         } else {
           formData.append(key, data[key]);
@@ -33,22 +52,35 @@ export const updateProfileUser = async (data) => {
       }
     });
 
-    return api.post('/profile/update', formData, {
+    const response = await api.post('/profile/update', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    }).then(response => {
-      console.log('Raw API Response:', response.data);
-      return response.data;
     });
-  });
+
+    return response.data; 
+  } catch (error) {
+    if (error.response) {
+      return error.response.data;
+    }
+    return { status: 500, message: 'Something went wrong' };
+  }
 };
 
 
-export const changePasswordApi = ({ current_password, new_password, new_password_confirmation }) => 
-  callApi(() => 
-    api.post('/change-password', { current_password, new_password, new_password_confirmation })
-      .then(res => res.data)
-  );
 
+// ---------------- Change Password ----------------
+export const changePasswordApi = async ({ current_password, new_password, new_password_confirmation }) => {
+  try {
+    const res = await api.post('/change-password', {
+      current_password,
+      new_password,
+      new_password_confirmation,
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response?.data) return error.response.data;
+    return { status: 500, message: 'Something went wrong' };
+  }
+};
 
 
 
@@ -63,10 +95,21 @@ export const fetchPageBySlug = (slug) =>
 
 
 
+// faqs
+  export const fetchFaqs = async () => {
+  const res = await api.get('/get-faqs');
+  return res.data.datas;
+};
 
 
 
-export const fetchSettings = () => callApi(() => api.get('/settings'));
+// ---------------- Settings ----------------
+export const fetchSettings = async () => {
+  const res = await api.get('/settings');
+  return res.data.datas;
+};
+
+
 export const fetchBanners = () => callApi(() => api.get('/banners'));
 export const fetchCategories = () => callApi(() => api.get('/home-categories'));
 
@@ -90,21 +133,54 @@ export const fetchListingDetails = (slug) =>
   
 
 
+// ----------------- My Bookings -----------------
+  
+export const fetchBookingSubmit = async (formData) => {
+  try {
+    const response = await api.post("/bookings", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data", 
+      },
+    });
+    return response;
+  } catch (error) {
+    // Log for debugging
+    console.error("Booking submission error:", error.response?.data || error.message);
+    throw error;
+  }
+};
 
-// Fetch users available for chat
-export const fetchChatUsers = () => 
-  callApi(() => api.get('/chat-users').then(res => res.data ?? []));
-
-// Fetch messages with a specific user
-export const fetchMessages = (userId) => 
-  callApi(() => api.get(`/messages/${userId}`).then(res => res.data ?? []));
-
-// Send a message to a user
-export const sendMessageApi = (receiverId, message) => 
-  callApi(() => api.post('/messages', { receiver_id: receiverId, message }).then(res => res.data));
+export const fetchMyBooking = () => callApi(() => api.get('/my-bookings')); 
 
 
-// Favorites
+export const cancelBooking = (id) =>
+  callApi(() => api.post(`/bookings/${id}/cancel`));
+
+
+
+
+// ----------------- Chat APIs -----------------
+export const fetchChatUsers = async () => {
+  const res = await api.get('/chat-users');
+  return res.data.data ?? [];
+};
+
+export const fetchConversations = async () => {
+  const res = await api.get('/conversations');
+  return res.data.data ?? [];
+};
+
+export const fetchMessages = async (userId) => {
+  const res = await api.get(`/messages/${userId}`);
+  return res.data.data ?? [];
+};
+
+export const sendMessageApi = async (receiverId, message) => {
+  const res = await api.post('/messages', { receiver_id: receiverId, message });
+  return res.data.data ?? null;
+};
+
+
+// ----------------- Favorites -----------------
 export const fetchFavorites = () => callApi(() => api.get('/favorites'));
-export const toggleFavorite = (listingId) =>
-  callApi(() => api.post('/favorites', { listing_id: listingId }));
+export const toggleFavorite = (listingId) => callApi(() => api.post('/favorites', { listing_id: listingId }));

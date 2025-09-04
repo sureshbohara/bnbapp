@@ -12,6 +12,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import colors from '../constants/colors';
@@ -21,6 +22,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerUser } from '../services/apiService';
 import { AuthContext } from '../contexts/AuthContext';
 import { showMessage } from 'react-native-flash-message';
+import { launchImageLibrary } from 'react-native-image-picker';
+
 const RegisterScreen = () => {
   const navigation = useNavigation();
   const { setUser } = useContext(AuthContext);
@@ -38,6 +41,12 @@ const RegisterScreen = () => {
     is_host: false,
   });
 
+  const [images, setImages] = useState({
+    image: null,
+    image1: null,
+    image2: null,
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [errors, setErrors] = useState({});
@@ -51,57 +60,80 @@ const RegisterScreen = () => {
     if (!form.email.trim()) errs.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Invalid email';
     if (!form.password) errs.password = 'Password is required';
-    else if (form.password.length < 6) errs.password = 'Minimum 6 characters';
+    else if (form.password.length < 8) errs.password = 'Minimum 8 characters';
     if (!form.passwordConfirm) errs.passwordConfirm = 'Confirm Password is required';
-    else if (form.password !== form.passwordConfirm)
-      errs.passwordConfirm = 'Passwords do not match';
+    else if (form.password !== form.passwordConfirm) errs.passwordConfirm = 'Passwords do not match';
     if (!form.phone_number.trim()) errs.phone_number = 'Phone number is required';
     if (!form.address.trim()) errs.address = 'Address is required';
     if (!form.city.trim()) errs.city = 'City is required';
     if (!form.state.trim()) errs.state = 'State is required';
     if (!form.country.trim()) errs.country = 'Country is required';
+    if (!images.image1) errs.image1 = 'Citizenship image is required';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-const handleRegister = async () => {
+  const pickImage = async (key) => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.8,
+    });
+
+    if (result.didCancel) return;
+    if (result.assets && result.assets.length > 0) {
+      setImages(prev => ({ ...prev, [key]: result.assets[0] }));
+    }
+  };
+
+  const handleRegister = async () => {
   if (!validateInputs()) {
     showMessage({ message: 'Please fix the errors in the form', type: 'danger' });
     return;
   }
-  setLoading(true);
-  try {
-    const response = await registerUser({
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      password_confirmation: form.passwordConfirm,
-      phone_number: form.phone_number,
-      address: form.address,
-      city: form.city,
-      state: form.state,
-      country: form.country,
-      is_host: form.is_host,
-    });
-    const token = response.data?.token ?? response?.token;
-    const user = response.data?.user ?? response?.user;
 
-    if (!token || !user) {
-      throw new Error('Invalid API response');
-    }
+  setLoading(true);
+
+  try {
+    const formData = new FormData();
+
+    // Append fields
+    Object.keys(form).forEach(key => {
+      if (key === 'passwordConfirm') {
+        formData.append('password_confirmation', form[key]);
+      } else if (key === 'is_host') {
+        formData.append(key, form[key] ? 1 : 0);
+      } else {
+        formData.append(key, form[key]);
+      }
+    });
+
+    // Append images
+    ['image', 'image1', 'image2'].forEach(key => {
+      if (images[key]) {
+        formData.append(key, {
+          uri: images[key].uri,
+          name: images[key].fileName || `${key}.jpg`,
+          type: images[key].type || 'image/jpeg',
+        });
+      }
+    });
+
+    const response = await registerUser(formData);
+
+    const token = response.token;
+    const user = response.user;
+
     await AsyncStorage.setItem('access_token', token);
     await AsyncStorage.setItem('user', JSON.stringify(user));
     setUser(user);
+
     showMessage({ message: `Welcome ${user.name}! 🎉`, type: 'success' });
-    navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    // navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
   } catch (error) {
     console.log('Register Error:', error);
-    if (error.response?.data?.errors) {
-      setErrors(error.response.data.errors);
-      showMessage({
-        message: 'Validation failed. Please check your inputs.',
-        type: 'danger',
-      });
+    if (error.errors) {
+      setErrors(error.errors);
+      showMessage({ message: 'Validation failed. Please check your inputs.', type: 'danger' });
     } else {
       showMessage({ message: 'Something went wrong. Please try again.', type: 'danger' });
     }
@@ -149,6 +181,26 @@ const handleRegister = async () => {
     );
   };
 
+  const renderImagePicker = (label, key) => (
+    <View style={{ marginBottom: 15 }}>
+      <Text style={{ marginBottom: 5, color: colors.text }}>{label}</Text>
+      <TouchableOpacity
+        onPress={() => pickImage(key)}
+        style={styles.imagePicker}
+        disabled={loading}
+      >
+        <Text>{images[key] ? 'Change Image' : 'Select Image'}</Text>
+      </TouchableOpacity>
+      {images[key] && (
+        <Image
+          source={{ uri: images[key].uri }}
+          style={{ width: 100, height: 100, marginTop: 10, borderRadius: 8 }}
+        />
+      )}
+      {errors[key] && <Text style={{ color: 'red', fontSize: 12, marginTop: 5 }}>{errors[key]}</Text>}
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -167,6 +219,10 @@ const handleRegister = async () => {
           {renderInput('country', 'Country')}
           {renderInput('password', 'Password', true)}
           {renderInput('passwordConfirm', 'Confirm Password', true)}
+
+          {renderImagePicker('Profile Image', 'image')}
+          {renderImagePicker('Citizenship Image', 'image1')}
+          {renderImagePicker('License/Passport Image', 'image2')}
 
           <View style={styles.switchContainer}>
             <View>
@@ -219,6 +275,15 @@ const styles = StyleSheet.create({
   button: { width: '100%', height: 50, borderRadius: 12, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 30 },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: colors.white, fontSize: 18, fontWeight: 'bold' },
+  imagePicker: {
+    height: 45,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+  },
 });
 
 export default RegisterScreen;
