@@ -1,24 +1,59 @@
-import React, { useState, useRef, useContext } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
+import React, { useState, useRef, useContext, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ScrollView,
+  Switch,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { showMessage } from 'react-native-flash-message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import colors from '../constants/colors';
 import { AuthContext } from '../contexts/AuthContext';
 import { SettingsConstants } from '../constants/SettingsConstants'; 
 
+const REMEMBER_ME_KEY = '@remember_me_credentials';
+
 const LoginScreen = () => {
   const navigation = useNavigation();
   const { login } = useContext(AuthContext);
-  const { settings, loading: settingsLoading } = useContext(SettingsConstants);
-  
+  const { settings } = useContext(SettingsConstants);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const passwordRef = useRef(null);
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    const loadCredentials = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(REMEMBER_ME_KEY);
+        if (saved) {
+          const { email: savedEmail, password: savedPassword } = JSON.parse(saved);
+          setEmail(savedEmail);
+          setPassword(savedPassword);
+          setRememberMe(true);
+        }
+      } catch (err) {
+        console.log('Failed to load saved credentials:', err);
+      }
+    };
+    loadCredentials();
+  }, []);
 
   const validateInputs = () => {
     if (!email) {
@@ -41,6 +76,17 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       const user = await login(email, password);
+
+      // Save credentials if "Remember Me" is checked
+      if (rememberMe) {
+        await AsyncStorage.setItem(
+          REMEMBER_ME_KEY,
+          JSON.stringify({ email, password })
+        );
+      } else {
+        await AsyncStorage.removeItem(REMEMBER_ME_KEY);
+      }
+
       showMessage({ message: `Welcome ${user.name}! 🎉`, type: 'success' });
       // navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch {
@@ -51,13 +97,28 @@ const LoginScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#f5f5f5' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#f5f5f5' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          {settings?.logo && <Image source={{ uri: settings.logo }} style={styles.logo} resizeMode="contain" />}
-          <Text style={styles.title}> Find Your Next Stay </Text>
-          <Text style={styles.subtitle}> Rooms and houses ready for your adventure </Text>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          {settings?.logo && (
+            <Image
+              source={{ uri: settings.logo }}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          )}
+          <Text style={styles.title}>Find Your Next Stay</Text>
+          <Text style={styles.subtitle}>
+            Rooms and houses ready for your adventure
+          </Text>
 
+          {/* Email Input */}
           <View style={styles.inputWrapper}>
             <TextInput
               placeholder="Email"
@@ -72,6 +133,7 @@ const LoginScreen = () => {
             />
           </View>
 
+          {/* Password Input */}
           <View style={styles.inputWrapper}>
             <TextInput
               ref={passwordRef}
@@ -84,17 +146,45 @@ const LoginScreen = () => {
               returnKeyType="done"
               onSubmitEditing={handleLogin}
             />
-            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(prev => !prev)}>
-              <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color={colors.textLight} />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setShowPassword(prev => !prev)}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off' : 'eye'}
+                size={22}
+                color={colors.textLight}
+              />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity onPress={() => navigation.navigate('ResetPassword')} style={styles.forgotBtn}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
-          </TouchableOpacity>
+          {/* Remember Me + Forgot Password Row */}
+          <View style={styles.rememberForgotWrapper}>
+            <View style={styles.rememberWrapper}>
+              <Switch
+                value={rememberMe}
+                onValueChange={setRememberMe}
+                thumbColor={rememberMe ? colors.primary : '#fff'}
+                trackColor={{ false: '#ccc', true: colors.primary + '55' }}
+              />
+              <Text style={styles.rememberText}>Remember Me</Text>
+            </View>
 
-          <TouchableOpacity style={[styles.loginBtn, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color={colors.white} /> : <Text style={styles.loginText}> Login </Text>}
+            <TouchableOpacity onPress={() => navigation.navigate('ResetPassword')}>
+              <Text style={styles.forgotText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.loginBtn, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Text style={styles.loginText}>Login</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.registerWrapper}>
@@ -131,9 +221,34 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   eyeIcon: { position: 'absolute', right: 10, top: '50%', transform: [{ translateY: -11 }] },
-  forgotBtn: { alignSelf: 'flex-end', marginBottom: 20 },
-  forgotText: { color: colors.secondary },
-  loginBtn: { width: '100%', backgroundColor: colors.primary, padding: 15, borderRadius: 8, alignItems: 'center', marginBottom: 20 },
+  rememberForgotWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 15,
+  },
+  rememberWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rememberText: {
+    marginLeft: 10,
+    color: colors.textDark,
+    fontSize: 14,
+  },
+  forgotText: {
+    color: colors.secondary,
+    fontSize: 14,
+  },
+  loginBtn: {
+    width: '100%',
+    backgroundColor: colors.primary,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   buttonDisabled: { opacity: 0.7 },
   loginText: { color: colors.white, fontSize: 16, fontWeight: 'bold' },
   registerWrapper: { flexDirection: 'row', alignItems: 'center' },

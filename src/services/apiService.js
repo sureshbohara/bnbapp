@@ -158,6 +158,12 @@ export const cancelBooking = (id) =>
 
 
 
+// get all user
+ export const fetchGetUsers = async () => {
+  const res = await api.get('/get-users');
+  return res.data.data ?? [];
+};
+
 
 // ----------------- Chat APIs -----------------
 export const fetchChatUsers = async () => {

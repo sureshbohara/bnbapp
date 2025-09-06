@@ -16,11 +16,14 @@ import BookingConfirmation from './src/screens/BookingConfirmation';
 import MyBookingsScreen from './src/screens/MyBookingsScreen';
 import CmsScreen from './src/screens/CmsScreen';
 import FaqsScreen from './src/screens/FaqsScreen';
+import UserScreen from './src/screens/UserScreen';
 
 import { AuthProvider, AuthContext } from './src/contexts/AuthContext';
 import { SettingsProvider } from './src/constants/SettingsConstants';
 import { FavoritesProvider } from './src/contexts/FavoritesContext';
 
+
+UserScreen
 const Stack = createNativeStackNavigator();
 
 // Auth Stack
@@ -46,6 +49,7 @@ const AppStack = () => (
     <Stack.Screen name="MyBook" component={MyBookingsScreen} />
     <Stack.Screen name="CmsScreen" component={CmsScreen} />
     <Stack.Screen name="FaqsScreen" component={FaqsScreen} />
+    <Stack.Screen name="UserScreen" component={UserScreen} />
   </Stack.Navigator>
 );
 

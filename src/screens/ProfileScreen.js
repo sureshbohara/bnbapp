@@ -88,8 +88,8 @@ const ProfileScreen = ({ navigation }) => {
         </View>
 
         {/* Optional Last Seen */}
-        <Text style={styles.lastSeen}>
-          Last seen: {profile.last_seen ? new Date(profile.last_seen).toLocaleString() : 'Offline'}
+        <Text style={styles.roleText}>
+          Last seen: {profile.last_seen ? new Date(profile.last_seen).toLocaleString() : 'Online'}
         </Text>
 
         <Text style={styles.phone}>{profile.phone_number || '-'}</Text>
@@ -124,6 +124,19 @@ const ProfileScreen = ({ navigation }) => {
           <Ionicons name="book-outline" size={20} color="#fff" />
           <Text style={styles.actionText}>Booking List</Text>
         </TouchableOpacity>
+
+         {/* All Users Button - only for admin */}
+          {profile.role === 'admin' && (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: '#2980b9' }]}
+              onPress={() => navigation.navigate('UserScreen')}
+            >
+              <Ionicons name="people-outline" size={20} color="#fff" />
+              <Text style={styles.actionText}>All Users</Text>
+            </TouchableOpacity>
+          )}
+
+        
 
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: '#e74c3c' }]}
