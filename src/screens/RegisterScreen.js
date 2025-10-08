@@ -54,24 +54,34 @@ const RegisterScreen = () => {
 
   const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
-  const validateInputs = () => {
-    let errs = {};
-    if (!form.name.trim()) errs.name = 'Name is required';
-    if (!form.email.trim()) errs.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Invalid email';
-    if (!form.password) errs.password = 'Password is required';
-    else if (form.password.length < 8) errs.password = 'Minimum 8 characters';
-    if (!form.passwordConfirm) errs.passwordConfirm = 'Confirm Password is required';
-    else if (form.password !== form.passwordConfirm) errs.passwordConfirm = 'Passwords do not match';
-    if (!form.phone_number.trim()) errs.phone_number = 'Phone number is required';
-    if (!form.address.trim()) errs.address = 'Address is required';
-    if (!form.city.trim()) errs.city = 'City is required';
-    if (!form.state.trim()) errs.state = 'State is required';
-    if (!form.country.trim()) errs.country = 'Country is required';
+ const validateInputs = () => {
+  let errs = {};
+
+  if (!form.name.trim()) errs.name = 'Name is required';
+  if (!form.email.trim()) errs.email = 'Email is required';
+  else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Invalid email';
+  if (!form.password) errs.password = 'Password is required';
+  else if (form.password.length < 8) errs.password = 'Minimum 8 characters';
+  if (!form.passwordConfirm) errs.passwordConfirm = 'Confirm Password is required';
+  else if (form.password !== form.passwordConfirm) errs.passwordConfirm = 'Passwords do not match';
+  if (!form.phone_number.trim()) errs.phone_number = 'Phone number is required';
+  if (!form.address.trim()) errs.address = 'Address is required';
+  if (!form.city.trim()) errs.city = 'City is required';
+  if (!form.state.trim()) errs.state = 'State is required';
+  if (!form.country.trim()) errs.country = 'Country is required';
+
+  if (form.is_host) {
+    if (!images.image) errs.image = 'Profile image is required';
     if (!images.image1) errs.image1 = 'Citizenship image is required';
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+    if (!images.image2) errs.image2 = 'License/Passport image is required';
+  } else {
+    if (!images.image2) errs.image2 = 'License/Passport image is required';
+  }
+
+  setErrors(errs);
+  return Object.keys(errs).length === 0;
+};
+
 
   const pickImage = async (key) => {
     const result = await launchImageLibrary({
